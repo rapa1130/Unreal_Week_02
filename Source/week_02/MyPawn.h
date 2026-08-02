@@ -38,6 +38,8 @@ public:
 	void CallBlueprint(int Money, FString Name);
 
 	void Fire();
+	void Slow();
+
 	void Pitch(float Value);
 	void Roll(float Value);
 
@@ -63,7 +65,12 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Components", BlueprintReadOnly)
 	UFloatingPawnMovement* Movement;
 
-	float Boost = 0.5f;
+	UPROPERTY(EditAnywhere, Category = "Data", BlueprintReadWrite)
+	float Speed = 1000.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Data", BlueprintReadWrite)
+	float Boost = 3.0f;
+	UINT bIsSlow : 1 = 1;
 
 	UPROPERTY(EditAnywhere, Category = "Data", BlueprintReadWrite)
 	TSubclassOf<class AMyRocket> RocketTemplate;

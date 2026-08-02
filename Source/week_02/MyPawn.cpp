@@ -9,6 +9,8 @@
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "MyRocket.h"
+#include "UObject/ConstructorHelpers.h"
 
 // Sets default values
 AMyPawn::AMyPawn()
@@ -34,20 +36,25 @@ AMyPawn::AMyPawn()
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SprintArm"));
 	SpringArm->SetupAttachment(Box);
+	SpringArm->bEnableCameraLag = true;
+	SpringArm->bEnableCameraRotationLag = true;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
 
 	Movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
 
-	ConstructorHelpers::FClassFinder<AMyRocket> ClassPath(TEXT("C:\Users\User\Documents\Unreal Projects\week_02\Content\Blueprints\BP_Rocket.uasset"))
+	ConstructorHelpers::FClassFinder<AMyRocket> RocketClass(
+		TEXT("/Game/Blueprints/BP_Rocket.BP_Rocket_C"));
+	RocketTemplate = RocketClass.Class;
+	//ConstructorHelpers::FClassFinder<AMyRocket> ClassPath(TEXT("C:\Users\User\Documents\Unreal Projects\week_02\Content\Blueprints\BP_Rocket.uasset"));
 }
 
 // Called when the game starts or when spawned
 void AMyPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 
 // Called every frame
@@ -57,6 +64,9 @@ void AMyPawn::Tick(float DeltaTime)
 
 	Left->AddLocalRotation(FRotator(0, 0, 1440.0f *DeltaTime));
 	Right->AddLocalRotation(FRotator(0, 0, 1440.0f *DeltaTime));
+
+	float totalSpeed = bIsSlow ? DeltaTime * Speed : Boost * DeltaTime * Speed;
+	AddActorWorldOffset(GetActorForwardVector() * totalSpeed);
 }
 
 // Called to bind functionality to input
@@ -65,9 +75,12 @@ void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	PlayerInputComponent->BindAction(TEXT("Fire"), EInputEvent::IE_Pressed, this, &AMyPawn::Fire);
+	PlayerInputComponent->BindAction(TEXT("Slow"), EInputEvent::IE_Pressed, this, &AMyPawn::Slow);
+	PlayerInputComponent->BindAction(TEXT("Slow"), EInputEvent::IE_Released, this, &AMyPawn::Slow);
 
 	PlayerInputComponent->BindAxis(TEXT("Pitch"), this, &AMyPawn::Pitch);
 	PlayerInputComponent->BindAxis(TEXT("Roll"), this, &AMyPawn::Roll);
+
 
 }
 
@@ -78,13 +91,13 @@ void AMyPawn::CallBlueprint(int Money, FString Name)
 
 void AMyPawn::Fire()
 {
-
-	//GetWorld()->SpawnActor()
+	GetWorld()->SpawnActor<AMyRocket>(
+		RocketTemplate, 
+		Body->GetSocketTransform(TEXT("RocketSpawnPoint")));
 }
 
 void AMyPawn::Pitch(float Value)
 {
-
 	float dT = UGameplayStatics::GetWorldDeltaSeconds(GetWorld());
 	this->AddActorLocalRotation(dT * FRotator(Value, 0, 0) * 60);
 }
@@ -93,5 +106,10 @@ void AMyPawn::Roll(float Value)
 {
 	float dT = UGameplayStatics::GetWorldDeltaSeconds(GetWorld());
 	this->AddActorLocalRotation(dT * FRotator(0, 0, Value) * 60);
+}
+
+void AMyPawn::Slow()
+{
+	bIsSlow ^= 1;
 }
 
